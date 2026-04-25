@@ -26,29 +26,27 @@ add_action('admin_menu', 'tcf_register_admin_menu');
 function tcf_render_admin_page() {
     // Handle form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tcf_action'])) {
-        check_admin_referer('tcf_add_field');
-        
         if ($_POST['tcf_action'] === 'add_field') {
+            check_admin_referer('tcf_add_field');
+
             $result = tcf_create_field($_POST);
-            
+
             if (is_wp_error($result)) {
-                $message = '<div class="notice notice-error is-dismissible"><p>' . $result->get_error_message() . '</p></div>';
+                $message = '<div class="notice notice-error is-dismissible"><p>' . esc_html($result->get_error_message()) . '</p></div>';
             } else {
-                $message = '<div class="notice notice-success is-dismissible"><p>' . __('Field added successfully!', 'tutor-custom-registration-fields') . '</p></div>';
+                $message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Field added successfully!', 'tutor-custom-registration-fields') . '</p></div>';
             }
-        }
-    }
-    
-    // Handle delete
-    if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['field_key'])) {
-        check_admin_referer('tcf_delete_' . $_GET['field_key']);
-        
-        $result = tcf_delete_field($_GET['field_key']);
-        
-        if (is_wp_error($result)) {
-            $message = '<div class="notice notice-error is-dismissible"><p>' . $result->get_error_message() . '</p></div>';
-        } else {
-            $message = '<div class="notice notice-success is-dismissible"><p>' . __('Field deleted successfully!', 'tutor-custom-registration-fields') . '</p></div>';
+        } elseif ($_POST['tcf_action'] === 'delete_field' && isset($_POST['field_key'])) {
+            $field_key = sanitize_key(wp_unslash($_POST['field_key']));
+            check_admin_referer('tcf_delete_' . $field_key);
+
+            $result = tcf_delete_field($field_key);
+
+            if (is_wp_error($result)) {
+                $message = '<div class="notice notice-error is-dismissible"><p>' . esc_html($result->get_error_message()) . '</p></div>';
+            } else {
+                $message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Field deleted successfully!', 'tutor-custom-registration-fields') . '</p></div>';
+            }
         }
     }
     
@@ -209,9 +207,14 @@ function tcf_render_admin_page() {
                                         <td><?php echo esc_html(isset($field_types[$field['field_type']]) ? $field_types[$field['field_type']] : $field['field_type']); ?></td>
                                         <td><?php echo !empty($field['required']) ? '<span class="dashicons dashicons-yes-alt tcf-yes"></span>' : '-'; ?></td>
                                         <td>
-                                            <a href="<?php echo wp_nonce_url('?page=tutor-custom-fields&action=delete&field_key=' . urlencode($key), 'tcf_delete_' . $key); ?>" class="button button-small tcf-delete-btn" data-field="<?php echo esc_attr($key); ?>">
-                                                <?php _e('Delete', 'tutor-custom-registration-fields'); ?>
-                                            </a>
+                                            <form method="post" action="" style="display:inline;">
+                                                <?php wp_nonce_field('tcf_delete_' . $key); ?>
+                                                <input type="hidden" name="tcf_action" value="delete_field">
+                                                <input type="hidden" name="field_key" value="<?php echo esc_attr($key); ?>">
+                                                <button type="submit" class="button button-small tcf-delete-btn" data-field="<?php echo esc_attr($key); ?>">
+                                                    <?php esc_html_e('Delete', 'tutor-custom-registration-fields'); ?>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -284,7 +287,7 @@ function tcf_render_admin_page() {
                 // Delete confirmation
                 $('.tcf-delete-btn').click(function(e) {
                     var field = $(this).data('field');
-                    if (!confirm('<?php _e('Are you sure you want to delete this field?', 'tutor-custom-registration-fields'); ?>')) {
+                    if (!confirm('<?php echo esc_js(__('Are you sure you want to delete this field?', 'tutor-custom-registration-fields')); ?>')) {
                         e.preventDefault();
                         return false;
                     }

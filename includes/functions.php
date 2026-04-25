@@ -50,7 +50,9 @@ function tcf_create_field($field_data)
         "meta_key" => !empty($field_data["meta_key"])
             ? sanitize_key($field_data["meta_key"])
             : $field_key,
-        "field_type" => sanitize_text_field($field_data["field_type"]),
+        "field_type" => array_key_exists(sanitize_key($field_data["field_type"]), tcf_get_field_types())
+            ? sanitize_key($field_data["field_type"])
+            : "text",
         "placeholder" => sanitize_text_field($field_data["placeholder"]),
         "column_width" => sanitize_text_field($field_data["column_width"]),
         "required" => !empty($field_data["required"]) ? true : false,
@@ -62,7 +64,7 @@ function tcf_create_field($field_data)
             ? true
             : false,
         "select_options" => isset($field_data["select_options"])
-            ? $field_data["select_options"]
+            ? sanitize_textarea_field($field_data["select_options"])
             : "",
     ];
 
@@ -125,7 +127,7 @@ function tcf_sanitize_field_value($value, $field_type)
         case "email":
             return sanitize_email($value);
         case "number":
-            return absint($value);
+            return (string) (float) $value;
         case "textarea":
             return sanitize_textarea_field($value);
         // case 'image':

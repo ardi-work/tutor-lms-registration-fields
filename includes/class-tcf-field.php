@@ -25,36 +25,18 @@ class TCFField
      */
     public function __construct($data = [])
     {
-        $this->field_key = isset($data["field_key"]) ? $data["field_key"] : "";
-        $this->label = isset($data["label"]) ? $data["label"] : "";
-        $this->meta_key = isset($data["meta_key"])
-            ? $data["meta_key"]
-            : $data["field_key"];
-        $this->field_type = isset($data["field_type"])
-            ? $data["field_type"]
-            : "text";
-        $this->placeholder = isset($data["placeholder"])
-            ? $data["placeholder"]
-            : "";
-        $this->column_width = isset($data["column_width"])
-            ? $data["column_width"]
-            : "full";
-        $this->required = isset($data["required"])
-            ? (bool) $data["required"]
-            : false;
-        $this->error_message = isset($data["error_message"])
-            ? $data["error_message"]
-            : "";
-        $this->display_in_profile = isset($data["display_in_profile"])
-            ? (bool) $data["display_in_profile"]
-            : false;
-        $this->display_in_edit = isset($data["display_in_edit"])
-            ? (bool) $data["display_in_edit"]
-            : false;
-        $this->select_options = isset($data["select_options"])
-            ? $data["select_options"]
-            : "";
-        $this->value = "";
+        $this->field_key          = $data["field_key"] ?? "";
+        $this->label              = $data["label"] ?? "";
+        $this->meta_key           = $data["meta_key"] ?? $data["field_key"] ?? "";
+        $this->field_type         = $data["field_type"] ?? "text";
+        $this->placeholder        = $data["placeholder"] ?? "";
+        $this->column_width       = $data["column_width"] ?? "full";
+        $this->required           = (bool) ($data["required"] ?? false);
+        $this->error_message      = $data["error_message"] ?? "";
+        $this->display_in_profile = (bool) ($data["display_in_profile"] ?? false);
+        $this->display_in_edit    = (bool) ($data["display_in_edit"] ?? false);
+        $this->select_options     = $data["select_options"] ?? "";
+        $this->value              = "";
     }
 
     /**

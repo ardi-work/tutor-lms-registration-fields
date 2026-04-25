@@ -20,12 +20,12 @@ function tcf_render_registration_fields()
         return;
     }
     echo '<div class="tutor-form-row" style="margin-bottom: 32px;">';
+    wp_nonce_field('tcf_registration', 'tcf_reg_nonce');
     foreach ($fields as $key => $field_data) {
         $field = new TCFField($field_data);
 
-        // Check if field should display in registration (all fields show in registration)
         $value = isset($_POST["tcf_fields"][$key])
-            ? $_POST["tcf_fields"][$key]
+            ? sanitize_text_field(wp_unslash($_POST["tcf_fields"][$key]))
             : "";
 
         $field->get_input_html($value);
@@ -47,6 +47,13 @@ add_action(
 function tcf_save_registration_fields($user_id, $args)
 {
     if (!isset($_POST["tcf_fields"]) || !is_array($_POST["tcf_fields"])) {
+        return;
+    }
+
+    if (
+        !isset($_POST["tcf_reg_nonce"]) ||
+        !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["tcf_reg_nonce"])), "tcf_registration")
+    ) {
         return;
     }
 
@@ -78,6 +85,13 @@ function tcf_validate_registration($is_valid)
         return $is_valid;
     }
 
+    if (
+        !isset($_POST["tcf_reg_nonce"]) ||
+        !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["tcf_reg_nonce"])), "tcf_registration")
+    ) {
+        return false;
+    }
+
     $fields = tcf_get_fields();
 
     foreach ($_POST["tcf_fields"] as $field_key => $value) {
@@ -89,11 +103,12 @@ function tcf_validate_registration($is_valid)
         $validation = $field->validate($value);
 
         if (is_wp_error($validation)) {
-            // Add error message
-            tutor()->utils->add_flash(
-                $validation->get_error_message(),
-                "tcf_error_" . $field_key,
-            );
+            if (function_exists("tutor") && tutor() && isset(tutor()->utils)) {
+                tutor()->utils->add_flash(
+                    $validation->get_error_message(),
+                    "tcf_error_" . $field_key,
+                );
+            }
             $is_valid = false;
         }
     }
@@ -149,6 +164,8 @@ function tcf_render_profile_edit_fields()
 
     $user_id = get_current_user_id();
 
+    wp_nonce_field('tcf_profile_edit', 'tcf_edit_nonce');
+
     foreach ($fields as $key => $field_data) {
         $field = new TCFField($field_data);
 
@@ -180,6 +197,18 @@ function tcf_save_profile_edit_fields($user_id)
         return;
     }
 
+    if (
+        !isset($_POST["tcf_edit_nonce"]) ||
+        !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST["tcf_edit_nonce"])), "tcf_profile_edit")
+    ) {
+        return;
+    }
+
+    // Ensure user can only update their own profile
+    if (get_current_user_id() !== (int) $user_id) {
+        return;
+    }
+
     $fields = tcf_get_fields();
 
     foreach ($_POST["tcf_fields"] as $field_key => $value) {
@@ -199,7 +228,8 @@ function tcf_save_profile_edit_fields($user_id)
         // Validate required
         $validation = $field->validate($value);
         if (is_wp_error($validation)) {
-            continue; // Skip validation on edit, or add error
+            do_action('tcf_profile_edit_validation_error', $validation, $field, $user_id);
+            continue;
         }
 
         // Save to user meta
@@ -207,15 +237,3 @@ function tcf_save_profile_edit_fields($user_id)
     }
 }
 
-/**
- * Get tutor instance helper
- */
-if (!function_exists("tutor")) {
-    function tutor()
-    {
-        if (class_exists("Tutor\Utils")) {
-            return new \Tutor\Utils();
-        }
-        return false;
-    }
-}
